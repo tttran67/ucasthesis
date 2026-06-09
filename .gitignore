@@ -1,0 +1,39 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.brf
+*.dvi
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+*.png
+# Generated documents
+*.pdf
+!模板使用说明.pdf
+.history
+# Generated previews and figure scratch files
+Thesis_page*.png
+fig_elements/
+
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

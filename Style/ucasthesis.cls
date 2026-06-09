@@ -182,10 +182,14 @@
     \def\ucas@value@ch@titlemark{#1}}
 \def\ucas@value@ch@author{}
 \renewcommand{\author}[1]{\def\ucas@value@ch@author{#1}}
+\def\ucas@value@ch@studentid{}
+\newcommand{\studentid}[1]{\def\ucas@value@ch@studentid{#1}}
 \def\ucas@value@ch@advisor{}
 \newcommand{\advisor}[1]{\long\def\ucas@value@ch@advisor{#1}}
 \def\ucas@value@ch@advisors{}
 \newcommand{\advisors}[1]{\long\def\ucas@value@ch@advisors{#1}}
+\def\ucas@value@ch@advisortitle{}
+\newcommand{\advisortitle}[1]{\def\ucas@value@ch@advisortitle{#1}}
 \def\ucas@value@ch@degree{}
 \newcommand{\degree}[1]{\def\ucas@value@ch@degree{#1}}
 \def\ucas@value@ch@degreetype{}
@@ -194,6 +198,8 @@
 \newcommand{\subject}[1]{\def\ucas@value@ch@subject{#1}}
 \def\ucas@value@ch@major{}
 \newcommand{\major}[1]{\def\ucas@value@ch@major{#1}}
+\def\ucas@value@ch@researchdirection{}
+\newcommand{\researchdirection}[1]{\def\ucas@value@ch@researchdirection{#1}}
 \def\ucas@value@ch@institute{}
 \newcommand{\institute}[1]{\long\def\ucas@value@ch@institute{#1}}
 \def\ucas@value@ch@school{}
@@ -210,6 +216,8 @@
 \newcommand{\studydateto}[1]{\def\ucas@value@ch@studydateto{#1}}
 \def\ucas@value@ch@date{}
 \renewcommand{\date}[1]{\def\ucas@value@ch@date{#1}}
+\def\ucas@value@ch@formdate{}
+\newcommand{\formdate}[1]{\def\ucas@value@ch@formdate{#1}}
 %-
 %-> English item commands
 %-
@@ -287,43 +295,53 @@
     \cleardoublepage
     \thispagestyle{empty}
     \begin{center}
-        \linespread{1.6}
+        \linespread{1.25}\selectfont
         \zihao{4}\bfseries
 
-        \hfill{} \ucasifstrbk{\ucas@value@ch@confidential}{}{\ucas@label@ch@confidential \ulenhance{\ulextend[50pt]{\hspace*{-\ulhshift}\zihao{5}\ucas@value@ch@confidential}}}
-
-        \vspace*{\stretch{4}}
+        \vspace*{6mm}
 
         {\ucas@value@ch@schoollogo}
 
-        \vspace*{\stretch{2}}
+        \vspace*{12mm}
 
         {\zihao{1}\bfseries\sffamily {\ucas@label@ch@thesis}}
 
-        \vspace*{\stretch{3}}
+        \vspace*{8mm}
 
-        {\zihao{-3}\bfseries\sffamily \ulenhance[1.5pt]{\ucas@value@ch@title}}
-
-        \vspace*{\stretch{3}}
+        \vfill
 
         \def\tabcolsep{1pt}
-        \def\arraystretch{1.3}
-        \begin{tabular}{lc}
-            \ucas@label@ch@author & \ulenhance[1.2pt]{\ulextend{\ucas@value@ch@author}}\\
-            \ucas@label@ch@advisor & \ucaslntotab[1.2pt]{\ucas@value@ch@advisor}\\
-            \ucas@label@ch@degree & \ulenhance[1.2pt]{\ulextend{\ucas@value@ch@degreetype\ucas@value@ch@degree}}\\
-            \ucas@label@ch@major & \ulenhance[1.2pt]{\ulextend{\ucas@value@ch@major}}\\
-            \ucas@label@ch@institute & \ucaslntotab[1.2pt]{\ucas@value@ch@institute}\\
+        \def\arraystretch{1.45}
+        \newcommand{\ucasproposalfieldvalue}[2]{%
+            \rlap{\makebox[##1][c]{##2}}\rule[-0.7ex]{##1}{0.6pt}}
+        \newcommand{\ucasproposalwidefield}[2]{%
+            \makebox[4em][s]{##1} &
+            \multicolumn{3}{l}{\ucasproposalfieldvalue{330pt}{##2}}\\}
+        \newcommand{\ucasproposalhalfleft}[2]{%
+            \makebox[4em][s]{##1} & \ucasproposalfieldvalue{105pt}{##2}}
+        \newcommand{\ucasproposalhalfright}[2]{%
+            \makebox[2em][s]{##1} & \ucasproposalfieldvalue{155pt}{##2}\\}
+        \begin{tabular}{@{}r@{\hspace{0.8em}}l@{\hspace{1.8em}}r@{\hspace{0.8em}}l@{}}
+            \ucasproposalwidefield{报告题目}{\ucas@value@ch@title}
+            \ucasproposalhalfleft{学生姓名}{\ucas@value@ch@author} &
+            \ucasproposalhalfright{学号}{\ucas@value@ch@studentid}
+            \ucasproposalhalfleft{指导教师}{\ucas@value@ch@advisor} &
+            \ucasproposalhalfright{职称}{\ucas@value@ch@advisortitle}
+            \ucasproposalwidefield{学位类别}{\ucas@value@ch@degreetype\ucas@value@ch@degree}
+            \ucasproposalwidefield{学科专业}{\ucas@value@ch@major}
+            \ucasproposalwidefield{研究方向}{\ucas@value@ch@researchdirection}
+            \ucasproposalwidefield{培养单位}{\ucas@value@ch@institute}
+            \ucasproposalwidefield{填表日期}{\ucasifstrbk{\ucas@value@ch@formdate}{\ucas@value@ch@date}{\ucas@value@ch@formdate}}
         \end{tabular}
 
-        \vspace*{\stretch{4}}
+        \vspace*{12mm}
+        
+        {\zihao{4}\bfseries 中国科学院大学制}
 
-        {\ucas@value@ch@date}
-
-        \vspace*{\stretch{4}}
+        \vspace*{10mm}
     \end{center}
-    \clearpage
     \if@twoside
+        \clearpage
         \thispagestyle{empty}
         \ifucas@versioninfo
             \vspace*{\stretch{1}}
@@ -535,8 +553,8 @@
 
         \vspace*{3ex}
     }
-    \clearpage
     \if@twoside
+        \clearpage
         \thispagestyle{empty}
         \cleardoublepage[empty]
     \fi
