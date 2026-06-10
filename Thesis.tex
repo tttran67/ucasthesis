@@ -41,6 +41,13 @@
 %- [math]% enable some extra math packages
 %- [xlink]% disable link colors
 \usepackage{Style/artracom}% user defined commands
+\usepackage{needspace}% keep continuous chapter headings from being crowded at page bottom
+\ctexset{
+    chapter = {
+        break = {\par\Needspace{8\baselineskip}},
+        beforeskip = {24pt},
+    }
+}
 %---------------------------------------------------------------------------%
 %->> Document inclusion
 %---------------------------------------------------------------------------%
