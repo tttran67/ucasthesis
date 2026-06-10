@@ -1,1 +1,319 @@
 \chapter{拟采用的研究方法、技术路线、实验方案及其可行性分析}
+
+本课题围绕手语理解开展研究，针对总结的三个研究挑战，本课题首先从算法层面提高模型的跨视角泛化能力和环境鲁棒性，随后从系统层面构建适应开放环境的手语理解系统。具体而言，本章将详细介绍基于几何先验引导的表征学习方法、基于语义先验引导的表征学习方法，以及基于自主移动机器人的自适应手语识别系统的设计与实现方案，并分析其可行性。
+
+\section{基于几何先验引导的表征学习}
+
+针对现有手语识别模型在准正面视角下性能下降的问题，本研究拟利用人体三维结构作为几何先验，从数据增广和特征约束两个层面提升模型的跨视角泛化能力。图\ref{fig:geometric_prior_framework}展示了本研究的具体思路：首先基于三维人体姿态估计生成多视角关键点序列，扩展训练样本的视角分布；随后利用对比学习约束不同视角下同一手语动作的特征一致性，规范模型的特征空间；最后进一步考虑三维姿态估计过程中的噪声和关键点格式差异，通过双流对比学习降低估计误差对识别模型的影响。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.75\textwidth]{fig_elements/icra_fig1.pdf}
+    \caption{基于几何先验引导的表征学习方法示意，$\mathcal{L}_{CV}$表示跨视角对比损失，$\mathcal{L}_{CS}$表示跨流对比损失，主分支（Primary Stream） 和 辅助提升分支（Lifting Stream） 分别使用二维、三维人体姿态估计器。}
+    \label{fig:geometric_prior_framework}
+\end{figure}
+
+
+\subsection{技术路线}
+
+\paragraph{多视角数据增广。}\label{par:multi_view_augmentation}
+
+为提高手语识别模型跨视角鲁棒性，本研究首先提出了XV-SLR\citep{peng2025synthetic}，该方法使用合成视角增广训练样本的录制视角，利用三维人体姿态估计对正面手语视频进行几何重建与任意视角投影，其整体网络结构如图\ref{fig:xv_slr_framework}所示。具体而言，对于源视角下的手语视频$X_i^s$，该方法首先使用三维人体网格恢复方法估计人体参数：
+
+\begin{equation}
+    \boldsymbol{\theta}, \boldsymbol{\beta}, \mathbf{t}
+    = \mathrm{HMR}(X_i^s),
+    \label{eq:xv_slr_hmr}
+\end{equation}
+
+其中，$\boldsymbol{\theta}\in\mathbb{R}^{162}$、$\boldsymbol{\beta}\in\mathbb{R}^{10}$和$\mathbf{t}\in\mathbb{R}^{3}$分别表示人体关节旋转、身体形状和三维平移参数。在获得上述参数后，进一步通过SMPLX人体模型层恢复三维人体结构：
+
+\begin{equation}
+    \mathbf{J}_i, \mathbf{V}_i
+    = \mathrm{SMPLX}(\boldsymbol{\theta}, \boldsymbol{\beta}, \mathbf{t}),
+    \label{eq:xv_slr_smplx}
+\end{equation}
+
+其中，$\mathbf{J}_i$和$\mathbf{V}_i$分别表示三维人体关键点和人体网格顶点。基于式\eqref{eq:xv_slr_hmr}和式\eqref{eq:xv_slr_smplx}得到的三维结构表示，XV-SLR在三维空间中对人体姿态进行方位角和俯仰角变换，并通过虚拟相机投影得到任意目标视角$\alpha$下的二维关键点序列；同时，还可以渲染得到对应视角下的RGB和深度视频，并结合背景与光照扰动构造更接近真实场景的合成训练样本。在此基础上，该方法进一步融合关键点、RGB和深度模态，通过多模态互补信息提升跨视角手语识别性能。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{fig_elements/www_fig1.pdf}
+    \caption{XV-SLR方法整体框架：左侧利用三维人体姿态估计对关键点模态进行多视角数据增广，右侧基于多模态融合进行训练。}
+    \label{fig:xv_slr_framework}
+\end{figure}
+
+
+\paragraph{跨视角对比学习。}
+
+在获得多视角关键点样本后，本研究进一步提出了ViSL\citep{peng2026visl}，该方法进一步引入跨视角对比学习约束，以提升特征空间的判别性和视角一致性，其整体框架如图\ref{fig:visl_framework}所示。对于同一手语样本或同一词汇类别下由不同视角生成的关键点序列，ViSL将其视为正样本对；对于不同词汇类别的样本，则将其视为负样本对。具体而言，对于第$i$个样本，其跨视角对比损失定义为：
+
+\begin{equation}
+    \mathcal{L}_{\mathrm{CV}}(i)
+    = -\frac{1}{|P(i)|}
+    \sum_{p\in P(i)}
+    \log
+    \frac{\exp(s_{i,p}/\tau)}
+    {\sum_{k=1}^{2N}\mathbb{I}_{[k\ne i]}\exp(s_{i,k}/\tau)},
+    \label{eq:visl_lcv}
+\end{equation}
+
+其中，$N$表示批大小，$P(i)$表示批内与样本$X_i$具有相同标签的合成视角样本集合，$s_{i,p}$表示样本$i$与样本$p$之间的余弦相似度，$\tau$为温度系数，$\mathbb{I}_{[k\ne i]}$用于排除样本自身。式\eqref{eq:visl_lcv}通过多正样本监督式对比学习，使同一手语动作在不同视角下的特征表示相互靠近，同时拉开不同手语类别之间的特征距离。通过这一约束，模型不仅学习到词汇类别相关的动作语义，也能够减少对特定摄像机视角和局部外观模式的依赖。
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{fig_elements/icra_fig2.pdf}
+    \caption{ViSL跨视角对比学习方法整体框架：对齐不同视角、不同估计器下同一手语动作的特征表示，并引入类别代理（class proxy）作为类级语义锚点，引导同类样本向对应类别聚合、不同类别样本相互分离。}
+    \label{fig:visl_framework}
+\end{figure}
+
+
+\paragraph{跨估计器对比学习。}
+
+仅依赖三维姿态估计进行视角增广仍存在一定局限。一方面，二维姿态估计通常具有较高的关键点定位精度，但缺少深度信息，难以直接模拟未见视角；另一方面，三维姿态估计能够提供深度结构并支持虚拟视角投影，但由于单目三维重建受身体结构关系约束，生成的三维关键点和投影后的二维关键点可能包含较明显的估计噪声。为同时利用二维关键点的定位精度和三维关键点的空间结构信息，ViSL进一步构建由主分支和辅助提升分支组成的训练结构。主分支以原始二维关键点为输入，侧重保持关键点定位的准确性；辅助分支基于三维姿态估计生成多视角关键点，提供跨视角几何信息。
+
+为了利用两个分支的互补信息，ViSL通过跨流对比损失显式对齐两个分支的特征表示。考虑到三维估计和视角投影可能产生噪声，ViSL采用噪声鲁棒的对比约束建模跨流关系：
+
+\begin{equation}
+    \mathcal{L}_{\mathrm{CS}}(i)
+    = -\frac{1}{\eta_1 |Q(i)|}
+    \sum_{q\in Q(i)}
+    \left(
+    \exp(\tilde{s}_{i,q}/\tau)
+    - \lambda_1
+    \left(
+    \sum_{k=1}^{2N}\mathbb{I}_{[k\ne i]}\exp(\tilde{s}_{i,k}/\tau)
+    \right)^{\eta_1}
+    \right),
+    \label{eq:visl_lcs}
+\end{equation}
+
+其中，$Q(i)$表示另一个分支中与样本$X_i$具有相同标签的样本集合，$\tilde{s}_{i,q}$表示主分支二维估计特征与辅助提升分支合成二维特征之间的余弦相似度，$\lambda_1$控制负样本项的权重，$\eta_1\in(0,1]$用于平衡易正样本利用与难样本探索。相较于直接采用标准对比学习，式\eqref{eq:visl_lcs}能够降低三维估计噪声和错误正负样本对对训练过程的干扰。
+
+此外，为进一步缩小二维估计与三维提升结果之间的特征分布差异，ViSL引入可学习的类别代理作为类级语义锚点，将二维和三维分支中的样本同时对齐到对应类别代理。其代理辅助跨流对比损失定义为：
+
+\begin{equation}
+    \mathcal{L}_{\mathrm{PCS}}(i)
+    = -\frac{1}{\eta_2 |C(i)|}
+    \sum_{c\in C(i)}
+    \left(
+    \exp(\hat{s}_{y_i,c}/\tau)
+    - \lambda_2
+    \left(
+    \sum_{k=1}^{2N}\mathbb{I}_{[k\ne i]}\exp(\hat{s}_{y_i,k}/\tau)
+    \right)^{\eta_2}
+    \right),
+    \label{eq:visl_lpcs}
+\end{equation}
+
+其中，$C(i)$表示批内与样本$X_i$属于同一类别的样本集合，$\hat{s}_{y_i,c}$表示样本特征与其类别$y_i$对应代理之间的余弦相似度，$\lambda_2$和$\eta_2$分别控制负样本约束强度和噪声鲁棒程度。类别代理为每个手语词汇提供稳定的类级参考点，从而引导同类样本向对应类别聚合，并缓解由估计器差异导致的跨流对齐不稳定问题。
+
+综合上述约束，ViSL的视角不变对比学习目标可写为：
+
+\begin{equation}
+    \mathcal{L}_{\mathrm{VI}}
+    = \mathcal{L}_{\mathrm{CV}}
+    + \mathcal{L}_{\mathrm{CS}}
+    + \mathcal{L}_{\mathrm{PCS}}.
+    \label{eq:visl_lvi}
+\end{equation}
+
+其中，$\mathcal{L}_{\mathrm{CV}}$主要减少视角差异，$\mathcal{L}_{\mathrm{CS}}$用于缓解二维与三维估计器之间的跨流差异，$\mathcal{L}_{\mathrm{PCS}}$则借助类别代理进一步稳定特征空间。由于辅助提升分支和类别代理仅在训练阶段提供约束，推理阶段仅保留主分支即可完成识别，从而避免额外的三维重建开销，并保持模型部署的轻量性。
+
+\subsection{实验方案}
+
+\paragraph{实验数据集}
+
+本研究采用包含多视角采集设置的MM-WLAuslan\citep{shen2024mm}数据集开展实验。该数据集是面向孤立词手语识别任务的大规模多视角、多模态澳大利亚手语数据集，共包含282,900段由73名手语者录制的视频，覆盖3,215个常用澳大利亚手语词汇。数据采集在影棚环境中完成，并使用Kinect-V2和RealSense相机从正面、左前方和右前方等不同视角进行同步录制，因此可用于系统评估模型在未见视角下的泛化能力。
+
+在跨视角实验设置中，训练集仅使用正面视角视频，验证与测试阶段则引入左前方和右前方视角，以模拟训练视角与测试视角不一致的真实应用场景。具体而言，训练集包含38,580段正面视角视频，基础验证集包含6,430段正面视角视频；在采用侧视角验证协议时，额外使用左前方和右前方验证集进行模型选择，并同时报告正面验证结果作为对照。测试集仅包含侧视角视频，并进一步划分为影棚场景（STU）、真实复杂背景场景（ITW）、合成背景场景（SYN）和时间扰动场景（TED）四个子集，每个子集包含12,860段视频，其中左前方和右前方视角各占一半。
+
+\paragraph{评价指标}
+
+实验评价将以Top-1准确率作为主要指标，衡量模型预测结果与真实手语词汇标签的一致性。验证阶段主要报告侧视角验证集上的平均Top-1准确率，并在需要时给出正面视角验证结果作为参照，以分析模型在训练视角和未见视角之间的性能差异。测试阶段分别统计STU、ITW、SYN和TED四个子集上的Top-1准确率，最终测试性能采用四个测试子集的平均结果进行衡量。
+
+\section{基于语义先验引导的表征学习}
+
+由于关键点模态在增广、训练过程中更轻量便捷，且不易受背景、光照等环境变化影响，现有的视角增广方案主要基于关键点模态进行设计，未能充分利用RGB模态中包含的丰富语义信息。为此，本研究将进一步引入语义先验引导的表征学习方法，提升RGB模态在复杂环境中的鲁棒性和语义表达能力，从而增强模型对手语动作细节和非手动特征的理解能力。图\ref{fig:semantic_prior_framework}展示了该方法的整体思路。
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{fig_elements/mm_fig1.pdf}
+    \caption{基于语义先验引导的表征学习方法示意，通过利用关键点提供的姿势控制信息，结合可控生成模型构建具有外观和场景扰动的训练样本，并引入关键帧选择与特征传播机制降低生成开销。}
+    \label{fig:semantic_prior_framework}
+\end{figure}
+
+
+\subsection{技术路线}
+
+\paragraph{可控生成样本构建。}
+
+为在保留RGB细粒度视觉信息的同时提升模型对复杂环境变化的鲁棒性，本研究提出了EASL，该方法利用生成模型提供的语义先验引导数据增广。如图\ref{fig:easl_synthetic_data}所示，EASL的核心思想是将人体关键点图像作为手语动作的稳定锚点，使用文本提示作为外观、光照和场景语义的控制信号，从而在不改变手语词汇标签的前提下生成具有多样环境扰动的训练样本。
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1\textwidth]{fig_elements/mm_fig2.pdf}
+    \caption{EASL可控生成样本构建流程示意，通过关键点条件增广视角并保持手语动作结构，并结合文本提示控制背景、光照、风格和手语者外观等语义因素。}
+    \label{fig:easl_synthetic_data}
+\end{figure}
+
+具体地，如第\ref{par:multi_view_augmentation}节所述，EASL首先获取不同视角的人体关键点序列，并将其作为生成模型的控制条件，以约束生成图像中的身体姿态和视角。在此基础上，从提示词集合中采样文本组合$P$，通过可控扩散模型生成目标视角和目标场景条件下的RGB图像：
+
+\begin{equation}
+    \tilde{x}^{\alpha}
+    =
+    f_{\mathrm{diffusion}}(P, K_{2D}^{\alpha}),
+    \label{eq:easl_diffusion}
+\end{equation}
+
+其中，$\tilde{x}^{\alpha}$为生成图像，$P$由图像风格、光照条件、场景背景和手语者外观等提示组成，用于控制合成图像的纹理信息；$K_{2D}^{\alpha}$表示人体关键点，用于控制视角和手语动作。通过这种分解式控制方式，模型可以在固定手语语义的前提下同时引入视角、背景、光照和人物外观变化，从而获得更多样、可控的增广结果。
+
+由于生成模型可能产生局部结构错误，尤其是在手部、上半身和面部区域，本研究进一步引入基于关键点重投影误差的质量控制机制。对于生成样本，重新估计其关键点并与目标条件$K_{2D}^{\alpha}$进行比较，得到归一化误差$\epsilon$，进而定义可靠性得分：
+
+\begin{equation}
+    \rho = 1 - \mathrm{Norm}(\epsilon).
+    \label{eq:easl_reliability}
+\end{equation}
+
+当$\rho$低于阈值$\tau$时，说明生成图像与目标姿态条件之间存在较大偏差，该样本将被过滤或降低权重；保留下来的可靠性得分则进一步用于后续特征传播过程，使高质量关键帧对序列表征产生更强影响。
+
+\paragraph{关键帧生成与特征传播。}
+
+直接对完整手语视频逐帧生成RGB图像会带来较高计算开销，因此EASL将视频级增广分解为稀疏关键帧生成和全序列特征传播两个阶段：首先从原始序列中选择对识别最关键的少量帧进行高质量生成，然后利用关键点图像作为中介，将生成关键帧中的外观和场景信息传播到其余帧。具体而言，给定识别模型在第$t$帧的激活图$A^t$及类别权重$w_c$，关键帧重要性得分定义为：
+
+\begin{equation}
+    s_t
+    =
+    \mathrm{Norm}
+    \left(
+    \mathrm{ReLU}
+    \left(
+    \frac{1}{J}
+    \sum_{j=1}^{J}
+    \sum_{c=1}^{C}
+    w_c A^t_{c,j}
+    \right)
+    \right),
+    \label{eq:easl_keyframe_score}
+\end{equation}
+
+其中，$J$表示空间位置数量，$C$表示通道数。该得分反映不同时间帧对当前识别决策的贡献，方法选择得分最高的$K$帧作为生成关键帧，从而将有限的生成预算集中在包含关键手势和显著语义线索的帧上。
+
+% 在特征建模阶段，为减少背景区域带来的冗余计算，EASL进一步采用关键点引导的token压缩策略。对于图像patch中心位置$p_i$和第$j$个关键点位置$k_j$，定义patch与手语动作区域的相关性得分：
+
+% \begin{equation}
+%     d_i =
+%     \max_{j\in\{1,\ldots,J\}}
+%     \exp
+%     \left(
+%     -\frac{\|p_i-k_j\|_2^2}{2\sigma^2}
+%     \right).
+%     \label{eq:easl_token_score}
+% \end{equation}
+
+% 根据$d_i$可以保留与手部、面部和上半身关键点更接近的前景token集合$I_{\mathrm{fg}}$，并将低相关性的背景token划分为$G$组后进行平均压缩：
+
+% \begin{equation}
+%     \tilde{\mathbf{e}}_{\mathrm{bg}}^{(g)}
+%     =
+%     \frac{1}{|I_{\mathrm{bg}}^{(g)}|}
+%     \sum_{i\in I_{\mathrm{bg}}^{(g)}} \mathbf{e}_i,
+%     \quad g=1,\ldots,G,
+%     \label{eq:easl_bg_token}
+% \end{equation}
+
+% \begin{equation}
+%     E_{\mathrm{cmp}}
+%     =
+%     \{\mathbf{e}_i \mid i\in I_{\mathrm{fg}}\}
+%     \cup
+%     \{\tilde{\mathbf{e}}_{\mathrm{bg}}^{(g)}\}_{g=1}^{G}.
+%     \label{eq:easl_token_compression}
+% \end{equation}
+
+% 其中，$\mathbf{e}_i$表示第$i$个patch token的特征，$E_{\mathrm{cmp}}$为压缩后的token集合。该策略在尽量保留手语识别关键区域信息的同时，降低背景token数量，提高生成式增广训练的效率。
+
+如图\ref{fig:easl_difference_propagation}所示，为了将稀疏生成关键帧中的外观信息传播到完整序列，EASL引入差分传播注意力机制。设$q_{t,i}$表示目标帧$t$的第$i$个token的查询向量，$k_{m,j}$表示生成关键帧$m$中第$j$个token的键向量，$d$为特征维度，则二者之间的时空注意力$A_{(t,i),(m,j)}$可写为：
+
+\begin{equation}
+    A_{(t,i),(m,j)}
+    =
+    \mathrm{softmax}
+    \left(
+    \frac{q_{t,i} k_{m,j}^{\top}}{\sqrt{d}}
+    \right).
+    \label{eq:easl_attention}
+\end{equation}
+
+
+对于目标帧$t$，方法将生成关键帧特征$f_m^{\mathrm{gen}}$与其关键点图像特征$f_m^{\mathrm{kpt}}$之间的差异视为外观和场景信息，并根据注意力权重进行传播：
+
+\begin{equation}
+    \Delta_t
+    =
+    \sum_{m\in M}
+    \rho_m^{\gamma}
+    A_{m,t}
+    \left(
+    f_m^{\mathrm{gen}} - f_m^{\mathrm{kpt}}
+    \right),
+    \label{eq:easl_delta}
+\end{equation}
+
+\begin{equation}
+    \tilde{h}_t = h_t + \Delta_t.
+    \label{eq:easl_feature_injection}
+\end{equation}
+
+其中，$M$表示生成关键帧集合，$\rho_m$表示第$m$个生成关键帧的可靠性得分，$\gamma$用于调节质量权重的影响强度，$h_t$和$\tilde{h}_t$分别表示传播前后的目标帧特征。通过上述机制，模型不需要对每一帧进行扩散生成，即可在全序列层面感知由语义提示引入的背景、光照、风格和人物外观变化。
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\textwidth]{fig_elements/mm_fig3.png}
+    \caption{EASL差分传播注意力机制示意，通过生成关键帧与关键点图像之间的特征差异建模外观和场景信息，并将其传播到完整手语序列。}
+    \label{fig:easl_difference_propagation}
+\end{figure}
+
+\paragraph{训练目标。}
+
+在训练阶段，真实样本和增广样本共享相同的手语词汇标签。设$\mathcal{D}_{\mathrm{r}}$表示真实训练集，$\mathcal{D}_{\mathrm{a}}$表示由可控生成与特征传播得到的增广训练集，识别模型$f(\cdot)$的总体优化目标定义为：
+
+\begin{equation}
+    \mathcal{L}
+    =
+    \frac{1}{|\mathcal{D}_{\mathrm{r}}|}
+    \sum_{(X,g)\in\mathcal{D}_{\mathrm{r}}}
+    \ell_{\mathrm{ce}}(f(X),g)
+    +
+    \frac{1}{|\mathcal{D}_{\mathrm{a}}|}
+    \sum_{(\hat{X},g)\in\mathcal{D}_{\mathrm{a}}}
+    \ell_{\mathrm{ce}}(f(\hat{X}),g),
+    \label{eq:easl_training_objective}
+\end{equation}
+
+其中，$X$和$\hat{X}$分别表示真实序列和增广序列，$g$表示对应的手语词汇标签，$\ell_{\mathrm{ce}}$表示交叉熵损失。式\eqref{eq:easl_training_objective}通过联合真实样本与生成样本进行监督学习，使模型在保持原始数据分布判别能力的同时，学习对视角、背景、光照和手语者外观扰动更加不敏感的RGB表征。
+
+\subsection{实验方案}
+
+\paragraph{实验数据集}
+
+本研究将在MM-WLAuslan\citep{shen2024mm}数据集上评估语义先验引导的表征学习方法。该数据集包含282,900段由73名手语者录制的孤立词手语视频，覆盖3,215个澳大利亚手语词汇，并提供RGB、深度和关键点等多模态信息。与前一节的跨视角设置一致，训练集仅使用受控影棚环境下的正面视角视频，共38,580段；验证集包含正面、左前方和右前方视角，其中正面验证集用于观察源视角性能，侧视角验证集用于评估模型选择时的未见视角泛化能力。测试集仅包含侧视角视频，并划分为影棚场景（STU）、真实复杂背景场景（ITW）、合成背景场景（SYN）和时间扰动场景（TED）四个子集，以检验模型在视角、背景和时序扰动共同存在时的鲁棒性。
+
+在生成式增广设置中，本研究将以第\ref{par:multi_view_augmentation}节所述方法获得的多视角关键点序列作为结构条件，并通过式\eqref{eq:easl_diffusion}构建具有多样外观和场景变化的RGB增广样本。提示词集合覆盖图像风格、光照、场景和手语者外观等维度，其中场景提示和人物外观提示用于模拟开放环境中更丰富的背景与手语者差异。为控制生成成本，实验将平均为每段视频生成少量关键帧，并通过式\eqref{eq:easl_attention}至式\eqref{eq:easl_feature_injection}将关键帧外观扰动传播至完整序列。RGB识别分支可采用VideoMAEv2作为视觉主干，输入视频统一采样为固定长度帧序列；在进一步分析多模态互补性时，可采用基于SkateFormer的骨架模型作为关键点分支，并通过类别概率平均进行后期融合。
+
+\paragraph{评价指标}
+
+实验将采用Top-1准确率作为主要评价指标。验证阶段分别报告正面验证集结果Val(F)和侧视角验证集平均结果Val(S)，用于分析模型在源视角和未见视角下的性能差异；测试阶段分别统计STU、ITW、SYN和TED四个侧视角测试子集上的Top-1准确率，并以四个子集的平均值Test(S)作为最终测试性能。除总体性能外，本研究还将围绕生成式增广的关键设计进行消融分析，包括关键帧生成相对于完整视频逐帧生成的效率与效果差异、特征传播机制对全序列增广的贡献、关键点引导token压缩在计算量和准确率之间的权衡、不同外观提示来源对模型鲁棒性的影响，以及RGB分支与关键点分支融合后的互补收益。通过这些评价，可以系统验证语义先验是否能够在不破坏手语动作结构的前提下有效提升RGB模型面对真实复杂环境时的泛化能力。
+
+\section{基于自主移动机器人的自适应手语识别系统}
+
+\subsection{技术路线}
+
+\subsection{实验方案}
+
+\paragraph{实验数据集}
+
+\paragraph{评价指标}
