@@ -1,1 +1,173 @@
-\chapter{已有科研基础与所需的科研条件}
+﻿\chapter{已有科研基础与所需的科研条件}
+
+\section{基于几何先验引导的表征学习}
+
+目前，该部分研究内容已完成，相关成果已发表、被接收 \citep{peng2025synthetic,peng2026visl}；下面展示相应的消融实验以及和主流方法的对比结果来说明所提出方法的有效性，采用的评价指标为Top-1准确率。
+
+如表\ref{tab:condition_geo_sota}所示，ViSL在仅使用骨架模态的情况下取得了67.14\%的测试准确率，显著高于已有的基于RGB、关键点和多模态融合方法。与最强的融合方法相比，本研究方法提升9.17\%准确率；与骨架模态中表现最好的方法相比，提升21.15\%准确率。这一结果证明了引入几何先验、同时利用不同姿态估计器互补信息的有效性。同时，由于推理阶段仅保留主分支，方法不需要引入多模态融合或模型集成，具备进一步部署到真实系统中的轻量化潜力。
+
+\begin{table}[htbp]
+    \caption{基于几何先验方法与主流方法在MM-WLAuslan上的性能对比（Top-1，\%）。其中，$\dagger$表示由\cite{shen2024mm}实现的结果，$\ddagger$表示由\cite{shen2025cvis}实现的结果，$*$表示额外融合深度模态。}
+    \label{tab:condition_geo_sota}
+    \setlength{\tabcolsep}{8.5pt}
+    \centering
+    \begin{tabular}{@{}lcccl@{}}
+        \toprule
+        \multicolumn{1}{c|}{\multirow{2}{*}{方法}} & \multicolumn{3}{c|}{模态} & \multicolumn{1}{c}{\multirow{2}{*}{Test}} \\ \cmidrule(lr){2-4}
+        \multicolumn{1}{c|}{} & RGB & 关键点 & \multicolumn{1}{l|}{融合} & \multicolumn{1}{c}{} \\ \midrule
+        \multicolumn{5}{c}{CV-ISLR Challenge~\cite{shen2025cross}方法} \\ \midrule
+        \multicolumn{1}{l|}{gkdx2~\cite{wang2025exploiting}} & \checkmark & & \multicolumn{1}{l|}{} & 20.29 \\
+        \multicolumn{1}{l|}{WANGXINYU1~\cite{wang2025cross}} & \checkmark & & \multicolumn{1}{l|}{} & 25.39 \\
+        \multicolumn{1}{l|}{VIPL\_SLP\cite{peng2025synthetic}} & \checkmark & & \multicolumn{1}{l|}{} & 36.15 \\
+        \multicolumn{1}{l|}{VIPL\_SLP\cite{peng2025synthetic}} & & \checkmark & \multicolumn{1}{l|}{} & 45.99 \\
+        \multicolumn{1}{l|}{gkdx2*~\cite{wang2025exploiting}} & & & \multicolumn{1}{l|}{\checkmark} & 24.53 \\
+        \multicolumn{1}{l|}{WANGXINYU1*~\cite{wang2025cross}} & & & \multicolumn{1}{l|}{\checkmark} & 33.97 \\
+        \multicolumn{1}{l|}{Tonicemerald~\cite{zheng2025zero}} & & & \multicolumn{1}{l|}{\checkmark} & 40.30 \\
+        \multicolumn{1}{l|}{VIPL\_SLP\cite{peng2025synthetic}} & & & \multicolumn{1}{l|}{\checkmark} & 56.87 \\
+        \multicolumn{1}{l|}{VIPL\_SLP*\cite{peng2025synthetic}} & & & \multicolumn{1}{l|}{\checkmark} & 57.97 \\ \midrule
+        \multicolumn{5}{c}{现有SOTA方法} \\ \midrule
+        \multicolumn{1}{l|}{$\text{VKNet-V}\dagger$~\cite{zuo2023natural}} & \checkmark & & \multicolumn{1}{l|}{} & \multicolumn{1}{r}{14.53} \\
+        \multicolumn{1}{l|}{$\text{STC-SLR}\ddagger$~\cite{zhao2024self}} & & \checkmark & \multicolumn{1}{l|}{} & \multicolumn{1}{r}{25.72} \\
+        \multicolumn{1}{l|}{$\text{VKNet-K}\ddagger$~\cite{zuo2023natural}} & & \checkmark & \multicolumn{1}{l|}{} & 28.04 \\
+        \multicolumn{1}{l|}{$\text{DSTA-SLR}\ddagger$~\cite{hu2024dynamic}} & & \checkmark & \multicolumn{1}{l|}{} & 28.66 \\
+        \multicolumn{1}{l|}{CMVSR~\cite{shen2025cvis}} & & \checkmark & \multicolumn{1}{l|}{} & 43.12 \\
+        \multicolumn{1}{l|}{$\text{UMDR*}\dagger$~\cite{zhou2023unified}} & & & \multicolumn{1}{l|}{\checkmark} & 22.82 \\
+        \multicolumn{1}{l|}{$\text{NLA-SLR}\ddagger$~\cite{zuo2023natural}} & & & \multicolumn{1}{l|}{\checkmark} & 33.23 \\ \midrule
+        \multicolumn{1}{l|}{Baseline (P-Stream)} & & \checkmark & \multicolumn{1}{l|}{} & 45.53 \\
+        \multicolumn{1}{l|}{Baseline (L-Stream)} & & \checkmark & \multicolumn{1}{l|}{} & 52.75 \\
+        \multicolumn{1}{l|}{Ours} & & \checkmark & \multicolumn{1}{l|}{} & \textbf{67.14} \\ \bottomrule
+    \end{tabular}
+\end{table}
+
+
+
+
+
+表\ref{tab:condition_geo_keypoint}进一步验证了不同关键点来源的作用。直接使用二维估计关键点训练和测试时，模型在侧视角验证集和测试集上分别达到50.26\%和45.53\%，说明高质量二维定位对手语动作细节建模十分重要。相比之下，仅依赖三维人体重建后投影得到的合成关键点时，侧视角性能明显下降，反映出三维估计和投影过程会引入关键点误差与格式差异。然而，当在合成关键点上加入视角增广后，侧视角验证性能由24.11\%提升至57.78\%，测试性能由22.60\%提升至52.75\%，表明三维结构所提供的视角旋转能力能够有效扩展训练分布。上述结果共同说明，二维关键点具备更准确的空间定位能力，三维估计则提供了有价值的深度与视角变化信息，二者具有明显互补性。
+
+\begin{table}[htbp]
+    \centering
+    \caption{估计关键点与合成关键点的消融实验（Top-1，\%）}
+    \label{tab:condition_geo_keypoint}
+    \begin{tabular}{lcccc}
+        \hline
+        训练数据 & 测试数据 & Val(F) & Val(S) & Test \\
+        \hline
+        Estimated & Estimated & 92.58 & 50.26 & 45.53 \\
+        Synthetic & Synthetic & 86.17 & 24.11 & 22.60 \\
+        Synthetic (aug) & Synthetic & 86.49 & 57.78 & 52.75 \\
+        Synthetic (aug) & Estimated & 70.67 & 49.81 & 45.45 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+表\ref{tab:condition_geo_loss}展示了跨视角对比学习各组成部分的贡献。仅使用主分支P-Stream时，模型在正面验证集上性能较高，但侧视角泛化能力有限；仅使用辅助提升分支L-Stream并引入视角增广后，侧视角性能有所提升，但正面视角性能受到三维估计噪声影响。加入跨视角对比损失$\mathcal{L}_{CV}$后，测试准确率由52.75\%提升至54.94\%，说明直接约束不同视角下同类样本的特征一致性能够增强模型的视角不变性。进一步联合P-Stream与L-Stream后，测试准确率提升至65.31\%，表明精确二维定位与三维深度线索可以互补。最后，引入跨流对比损失$\mathcal{L}_{CS}$和代理辅助对比损失$\mathcal{L}_{PCS}$后，测试性能达到67.14\%，同时正面验证集性能也恢复到92.64\%。这些结果说明，所设计的双流对比学习框架能够在利用三维几何先验的同时缓解估计噪声和关键点格式差异。
+
+\begin{table}[htbp]
+    \centering
+    \caption{跨视角对比学习设计的消融实验（Top-1，\%）}
+    \label{tab:condition_geo_loss}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{ccccc|ccc}
+        \hline
+        P-Stream & L-Stream & $\mathcal{L}_{CV}$ & $\mathcal{L}_{CS}$ & $\mathcal{L}_{PCS}$ & Val(F) & Val(S) & Test \\
+        \hline
+        \checkmark &  &  &  &  & 92.58 & 50.26 & 45.53 \\
+         & \checkmark &  &  &  & 86.49 & 57.78 & 52.75 \\
+         & \checkmark & \checkmark &  &  & 86.94 & 59.69 & 54.94 \\
+        \checkmark & \checkmark & \checkmark &  &  & 91.63 & 70.62 & 65.31 \\
+        \checkmark & \checkmark & \checkmark & \checkmark &  & 92.02 & 71.44 & 66.13 \\
+        \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \textbf{92.64} & \textbf{71.71} & \textbf{67.14} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{基于语义先验引导的表征学习}
+
+目前，该部分内容已初步验证利用语义先验引导的有效性，以下从单模态性能、跨数据集泛化能力以及传播注意力机制三个方面总结已有科研基础。
+
+表\ref{tab:condition_semantic_single_modal}展示了EASL在MM-WLAuslan跨视角设置下的单模态结果。仅使用RGB模态时，EASL将测试集平均准确率由41.63\%提升至54.55\%，说明姿态引导的生成式增广能够有效改善RGB模型对视角、背景和外观变化的适应能力。
+
+\begin{table}[htbp]
+    \centering
+    \caption{单模态EASL的消融实验（Top-1，\%）}
+    \label{tab:condition_semantic_single_modal}
+    \setlength{\tabcolsep}{3.5pt}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        方法 & Val(F) & Val(S) & Test(S) \\
+        \midrule
+        RGB Baseline & 92.52 & 44.72 & 41.63 \\
+        EASL & 92.05 & 56.91 & \textbf{54.55} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+为进一步验证方法的跨数据集泛化能力，已有实验在NationalCSL-DP\citep{jin2025nationalcsl}上进行了正面视角到左视角的迁移评估。表\ref{tab:condition_semantic_nationalcsl}表明，EASL在Val(L)上由RGB基线的3.66\%提升至12.96\%，在Test(L)上由2.72\%提升至10.07\%；同时，EASL在正面验证集Val(F)上也达到96.41\%，优于RGB基线的94.74\%。这些结果说明，语义先验引导的生成式增广并非只对单一数据集有效，也能够在不同语言和不同采集条件的数据集上提升跨视角迁移能力。
+
+\begin{table}[htbp]
+    \centering
+    \caption{NationalCSL-DP上的跨数据集验证结果（Top-1，\%）}
+    \label{tab:condition_semantic_nationalcsl}
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        方法 & Val(F) & Val(L) & Test(L) \\
+        \midrule
+        RGB Baseline & 94.74 & 3.66 & 2.72 \\
+        EASL & 96.41 & 12.96 & 10.07 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+表\ref{tab:condition_semantic_keyframe_strategy}比较了在相同生成帧数预算下，全序列与关键帧合成策略的性能差异。可以看到，在不同生成规模下，关键帧合成均优于直接生成完整序列的方式。例如，当生成帧数为100,000时，关键帧策略将Test(S)准确率由47.77\%提升至50.05\%；当生成帧数降低至8,000时，关键帧策略仍由43.30\%提升至44.48\%。这说明，在相同生成成本下，优先合成具有代表性的关键帧，并将其中的外观和场景线索传播到完整序列，比直接逐帧生成更有利于转化为识别性能增益。同时，随着生成帧数从8,000增加到100,000，关键帧策略的Test(S)准确率由44.48\%逐步提升至50.05\%，表明EASL能持续受益于更大规模的合成增广数据。
+
+\begin{table}[htbp]
+    \centering
+    \caption{全序列合成与关键帧合成策略的性能对比（Top-1，\%）。其中“生成帧数”表示生成图像帧的总数。}
+    \label{tab:condition_semantic_keyframe_strategy}
+    \setlength{\tabcolsep}{3.5pt}
+    \begin{tabular}{llccc}
+        \toprule
+        生成帧数 & 合成策略 & Val(F) & Val(S) & Test(S) \\
+        \midrule
+        \multirow{2}{*}{100,000} & full length & 92.47 & 50.75 & 47.77 \\
+                                 & keyframe & 93.76 & 53.61 & 50.05 \\
+        \midrule
+        \multirow{2}{*}{80,000} & full length & 92.19 & 48.87 & 46.51 \\
+                                & keyframe & 93.51 & 52.53 & 49.00 \\
+        \midrule
+        \multirow{2}{*}{60,000} & full length & 91.21 & 45.98 & 43.07 \\
+                                & keyframe & 93.69 & 51.56 & 48.21 \\
+        \midrule
+        \multirow{2}{*}{20,000} & full length & 92.77 & 47.36 & 44.04 \\
+                                & keyframe & 92.81 & 49.18 & 46.20 \\
+        \midrule
+        \multirow{2}{*}{8,000} & full length & 91.93 & 45.99 & 43.30 \\
+                               & keyframe & 92.57 & 47.79 & 44.48 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+
+表\ref{tab:condition_semantic_propagation}进一步验证了传播注意力机制的作用。去除传播注意力后，模型在Test(S)上的准确率为41.14\%；加入传播注意力后，性能提升至50.05\%。该结果说明，仅依赖姿态图像或稀疏生成关键帧难以充分建模RGB纹理和场景信息，而传播注意力能够将关键帧中的外观、背景和风格线索传递到完整序列，从而缓解关键帧生成与全序列识别之间的信息缺口。
+
+\begin{table}[htbp]
+    \centering
+    \caption{传播注意力机制的消融实验（Top-1，\%）}
+    \label{tab:condition_semantic_propagation}
+    \setlength{\tabcolsep}{5pt}
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Propagation Attention & Val(F) & Val(S) & Test(S) \\
+        \midrule
+        w/ & 93.76 & 53.61 & 50.05 \\
+        w/o & 91.06 & 44.51 & 41.14 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{基于自主移动机器人的自适应手语理解系统}
+
