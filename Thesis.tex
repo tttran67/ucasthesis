@@ -42,6 +42,12 @@
 %- [xlink]% disable link colors
 \usepackage{Style/artracom}% user defined commands
 \usepackage{needspace}% keep continuous chapter headings from being crowded at page bottom
+\DeclareCaptionFont{tablefont}{\zihao{5}}
+\captionsetup[table]{font={tablefont,bf}}
+\newif\ifthesisintable
+\AtBeginEnvironment{table}{\thesisintabletrue\zihao{5}}
+\AtEndEnvironment{table}{\thesisintablefalse}
+\AtBeginEnvironment{tabular}{\ifthesisintable\zihao{5}\fi}% match table body font size with table captions
 \ctexset{
     chapter = {
         break = {\par\Needspace{8\baselineskip}},

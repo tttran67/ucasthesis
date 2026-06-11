@@ -736,7 +736,7 @@
         \begingroup
             \parindent \z@ \rightskip \@pnumwidth
             \parfillskip -\@pnumwidth
-            \leavevmode \zihao{4}\sffamily
+            \leavevmode \zihao{-4}\sffamily
             \advance\leftskip\@tempdima
             \hskip -\leftskip
             #1\nobreak
