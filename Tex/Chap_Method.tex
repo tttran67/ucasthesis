@@ -64,7 +64,7 @@
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\textwidth]{fig_elements/icra_fig2.pdf}
-    \caption{ViSL跨视角对比学习方法整体框架。}
+    \caption{ViSL跨视角对比学习方法整体框架}
     \label{fig:visl_framework}
 \end{figure}
 
@@ -140,7 +140,7 @@
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{fig_elements/mm_fig1.pdf}
-    \caption{基于语义先验引导的表征学习方法示意。}
+    \caption{基于语义先验引导的表征学习方法示意}
     \label{fig:semantic_prior_framework}
 \end{figure}
 
@@ -155,7 +155,7 @@
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\textwidth]{fig_elements/mm_fig2.pdf}
-    \caption{EASL可控生成样本构建流程示意。}
+    \caption{EASL可控生成样本构建流程示意}
     \label{fig:easl_synthetic_data}
 \end{figure}
 
@@ -201,40 +201,6 @@
 
 其中，$J$表示空间位置数量，$C$表示通道数。该得分反映不同时间帧对当前识别决策的贡献，方法选择得分最高的$K$帧作为生成关键帧，从而将有限的生成预算集中在包含关键手势和显著语义线索的帧上。
 
-% 在特征建模阶段，为减少背景区域带来的冗余计算，EASL进一步采用关键点引导的token压缩策略。对于图像patch中心位置$p_i$和第$j$个关键点位置$k_j$，定义patch与手语动作区域的相关性得分：
-
-% \begin{equation}
-%     d_i =
-%     \max_{j\in\{1,\ldots,J\}}
-%     \exp
-%     \left(
-%     -\frac{\|p_i-k_j\|_2^2}{2\sigma^2}
-%     \right).
-%     \label{eq:easl_token_score}
-% \end{equation}
-
-% 根据$d_i$可以保留与手部、面部和上半身关键点更接近的前景token集合$I_{\mathrm{fg}}$，并将低相关性的背景token划分为$G$组后进行平均压缩：
-
-% \begin{equation}
-%     \tilde{\mathbf{e}}_{\mathrm{bg}}^{(g)}
-%     =
-%     \frac{1}{|I_{\mathrm{bg}}^{(g)}|}
-%     \sum_{i\in I_{\mathrm{bg}}^{(g)}} \mathbf{e}_i,
-%     \quad g=1,\ldots,G,
-%     \label{eq:easl_bg_token}
-% \end{equation}
-
-% \begin{equation}
-%     E_{\mathrm{cmp}}
-%     =
-%     \{\mathbf{e}_i \mid i\in I_{\mathrm{fg}}\}
-%     \cup
-%     \{\tilde{\mathbf{e}}_{\mathrm{bg}}^{(g)}\}_{g=1}^{G}.
-%     \label{eq:easl_token_compression}
-% \end{equation}
-
-% 其中，$\mathbf{e}_i$表示第$i$个patch token的特征，$E_{\mathrm{cmp}}$为压缩后的token集合。该策略在尽量保留手语识别关键区域信息的同时，降低背景token数量，提高生成式增广训练的效率。
-
 如图\ref{fig:easl_difference_propagation}所示，为了将稀疏生成关键帧中的外观信息传播到完整序列，EASL引入差分传播注意力机制。设$q_{t,i}$表示目标帧$t$的第$i$个token的查询向量，$k_{m,j}$表示生成关键帧$m$中第$j$个token的键向量，$d$为特征维度，则二者之间的时空注意力$A_{(t,i),(m,j)}$可写为：
 
 \begin{equation}
@@ -273,7 +239,7 @@
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{fig_elements/mm_fig3.pdf}
-    \caption{EASL差分传播注意力机制示意。}
+    \caption{EASL差分传播注意力机制示意}
     \label{fig:easl_difference_propagation}
 \end{figure}
 
