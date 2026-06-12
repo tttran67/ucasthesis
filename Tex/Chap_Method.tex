@@ -25,7 +25,6 @@
     = \mathrm{HMR}(X_i^s),
     \label{eq:xv_slr_hmr}
 \end{equation}
-
 其中，$\boldsymbol{\theta}\in\mathbb{R}^{162}$、$\boldsymbol{\beta}\in\mathbb{R}^{10}$和$\mathbf{t}\in\mathbb{R}^{3}$表示人体关节旋转、身体形状和三维平移参数。进一步通过SMPLX\citep{pavlakos2019expressive}人体模型层恢复三维人体结构：
 
 \begin{equation}
@@ -33,7 +32,6 @@
     = \mathrm{SMPLX}(\boldsymbol{\theta}, \boldsymbol{\beta}, \mathbf{t}),
     \label{eq:xv_slr_smplx}
 \end{equation}
-
 其中，$\mathbf{J}_i$和$\mathbf{V}_i$分别表示三维人体关键点和人体网格顶点。基于式\eqref{eq:xv_slr_hmr}和式\eqref{eq:xv_slr_smplx}得到的三维结构表示，XV-SLR在三维空间中对人体姿态进行方位角和俯仰角变换，并通过虚拟相机投影得到任意目标视角$\alpha$下的二维关键点序列；同时，还可以渲染得到对应视角下的RGB和深度视频，并结合背景与光照扰动构造更接近真实场景的合成训练样本。在此基础上，该方法进一步融合关键点、RGB和深度模态，通过多模态互补信息提升跨视角手语识别性能。
 
 \begin{figure}[htbp]
@@ -57,7 +55,6 @@
     {\sum_{k=1}^{2N}\mathbb{I}_{[k\ne i]}\exp(s_{i,k}/\tau)},
     \label{eq:visl_lcv}
 \end{equation}
-
 其中，$N$表示批大小，$P(i)$表示批内与样本$X_i$具有相同标签的合成视角样本集合，$s_{i,p}$表示样本$i$与样本$p$之间的余弦相似度，$\tau$为温度系数，$\mathbb{I}_{[k\ne i]}$用于排除样本自身。式\eqref{eq:visl_lcv}通过多正样本监督式对比学习，使同一手语动作在不同视角下的特征表示相互靠近，同时拉开不同手语类别之间的特征距离。通过这一约束，模型不仅学习到词汇类别相关的动作语义，也能够减少对特定摄像机视角和局部外观模式的依赖。
 
 
@@ -88,7 +85,6 @@
     \right),
     \label{eq:visl_lcs}
 \end{equation}
-
 其中，$Q(i)$表示另一个分支中与样本$X_i$具有相同标签的样本集合，$\tilde{s}_{i,q}$表示主分支二维估计特征与辅助提升分支合成二维特征之间的余弦相似度，$\lambda_1$控制负样本项的权重，$\eta_1\in(0,1]$用于平衡易正样本利用与难样本探索。相较于直接采用标准对比学习，式\eqref{eq:visl_lcs}能降低训练中估计噪声和错误正负样本对的干扰。
 
 此外，为进一步缩小二维估计与三维提升结果之间的特征分布差异，ViSL引入可学习的类别代理作为类级语义锚点，将二维和三维分支中的样本同时对齐到对应类别代理。其代理辅助跨流对比损失定义为：
@@ -106,7 +102,6 @@
     \right),
     \label{eq:visl_lpcs}
 \end{equation}
-
 其中，$C(i)$表示批内与样本$X_i$属于同一类别的样本集合，$\hat{s}_{y_i,c}$表示样本特征与其类别$y_i$对应代理之间的余弦相似度，$\lambda_2$和$\eta_2$分别控制负样本约束强度和噪声鲁棒程度。类别代理为每个手语词汇提供稳定的类级参考点，从而引导同类样本向对应类别聚合，并缓解由估计器差异导致的跨流对齐不稳定问题。
 
 综合上述约束，ViSL的视角不变对比学习目标可写为：
@@ -115,10 +110,9 @@
     \mathcal{L}_{\mathrm{VI}}
     = \mathcal{L}_{\mathrm{CV}}
     + \mathcal{L}_{\mathrm{CS}}
-    + \mathcal{L}_{\mathrm{PCS}}.
+    + \mathcal{L}_{\mathrm{PCS}},
     \label{eq:visl_lvi}
 \end{equation}
-
 其中，$\mathcal{L}_{\mathrm{CV}}$主要减少视角差异，$\mathcal{L}_{\mathrm{CS}}$用于缓解二维与三维估计器之间的跨流差异，$\mathcal{L}_{\mathrm{PCS}}$则借助类别代理进一步稳定特征空间。由于辅助提升分支和类别代理仅在训练阶段提供约束，推理阶段仅保留主分支即可完成识别，从而避免额外的三维重建开销，并保持模型部署的轻量性。
 
 \subsection{实验方案}\label{subsec:geometric_prior_experiment}
@@ -167,7 +161,6 @@
     f_{\mathrm{diffusion}}(P, K_{2D}^{\alpha}),
     \label{eq:easl_diffusion}
 \end{equation}
-
 其中，$\tilde{x}^{\alpha}$为生成图像，$P$由图像风格、光照条件、场景背景和手语者外观等提示组成，用于控制合成图像的纹理信息；$K_{2D}^{\alpha}$表示人体关键点，用于控制视角和手语动作。通过这种分解式控制方式，模型可以在固定手语语义的前提下同时引入视角、背景、光照和人物外观变化，从而获得更多样、可控的增广结果。
 
 由于生成模型可能产生错误，尤其是在手部、上半身和面部区域，本研究进一步引入基于关键点重投影误差的质量控制机制。对于生成样本，重新估计其关键点并与目标条件$K_{2D}^{\alpha}$进行比较，得到归一化误差$\epsilon$，进而定义可靠性得分：
@@ -198,7 +191,6 @@
     \right),
     \label{eq:easl_keyframe_score}
 \end{equation}
-
 其中，$J$表示空间位置数量，$C$表示通道数。该得分反映不同时间帧对当前识别决策的贡献，方法选择得分最高的$K$帧作为生成关键帧，从而将有限的生成预算集中在包含关键手势和显著语义线索的帧上。
 
 如图\ref{fig:easl_difference_propagation}所示，为了将稀疏生成关键帧中的外观信息传播到完整序列，EASL引入差分传播注意力机制。设$q_{t,i}$表示目标帧$t$的第$i$个token的查询向量，$k_{m,j}$表示生成关键帧$m$中第$j$个token的键向量，$d$为特征维度，则二者之间的时空注意力$A_{(t,i),(m,j)}$可写为：
@@ -229,10 +221,9 @@
 \end{equation}
 
 \begin{equation}
-    \tilde{h}_t = h_t + \Delta_t.
+    \tilde{h}_t = h_t + \Delta_t,
     \label{eq:easl_feature_injection}
 \end{equation}
-
 其中，$M$表示生成关键帧集合，$\rho_m$表示第$m$个生成关键帧的可靠性得分，$\gamma$用于调节质量权重的影响强度，$h_t$和$\tilde{h}_t$分别表示传播前后的目标帧特征。通过上述机制，模型不需要对每一帧进行扩散生成，即可在全序列层面感知由语义提示引入的背景、光照、风格和人物外观变化。
 
 
@@ -259,7 +250,6 @@
     \ell_{\mathrm{ce}}(f(\hat{X}),g),
     \label{eq:easl_training_objective}
 \end{equation}
-
 其中，$X$和$\hat{X}$分别表示真实序列和增广序列，$g$表示对应的手语词汇标签，$\ell_{\mathrm{ce}}$表示交叉熵损失。式\eqref{eq:easl_training_objective}通过联合真实样本与生成样本进行监督学习，使模型在保持原始数据分布判别能力的同时，学习对视角、背景、光照和手语者外观扰动更加不敏感的RGB表征。
 
 \subsection{实验方案}
@@ -292,7 +282,6 @@
     s_t = \{d_t, \theta_t, q_t, b_t, c_t\},
     \label{eq:robot_state}
 \end{equation}
-
 其中，$d_t$表示机器人与手语者之间的距离，$\theta_t$表示相机光轴与手语者身体朝向之间的相对角度，$q_t$表示由人体框完整性、关键点可见性和手部区域清晰度共同构成的观测质量，$b_t$表示由障碍物、通道宽度和会议桌椅布局等因素形成的局部可通行约束，$c_t$表示翻译模型当前输出的置信度。主动决策模块在候选动作集合$\mathcal{A}$中选择移动、旋转或保持当前位置等动作，并以提升录制视角质量、降低翻译不确定性和控制移动代价为目标：
 
 \begin{equation}
@@ -310,7 +299,6 @@
     \right),
     \label{eq:robot_active_policy}
 \end{equation}
-
 其中，$m(a_t)$表示执行动作带来的运动代价，$r(a_t,b_t)$表示动作与局部环境约束之间的碰撞风险或通行惩罚，$\lambda_1$至$\lambda_4$为权重系数。通过该策略，机器人能够在不明显打断交流的前提下，优先移动到手部遮挡更少、人体关键点更完整、翻译模型更稳定的位置，并在会议桌、座椅和行人等障碍物之间规划可执行路径。实际系统中可采用基于规则的轻量策略作为初始方案，例如当手语者偏离视野中心时调整朝向，当距离过远导致手部区域过小时靠近手语者，当侧向遮挡导致关键点缺失时沿横向移动至更接近正面的录制角度；在后续扩展中，也可进一步利用强化学习优化主动视角选择和路径规划策略。
 
 \paragraph{手语翻译与实时反馈。}
